@@ -1,0 +1,7 @@
+{application, ghc_bome_at, [
+    {description, "GHC Bome service acceptance tests"},
+    {id, "ghc_bome_at"},
+    {vsn, "0.1.0"},
+    {modules, []},
+    {applications, [kernel, stdlib]}
+]}.

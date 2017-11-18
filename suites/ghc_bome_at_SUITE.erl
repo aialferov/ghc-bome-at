@@ -28,7 +28,7 @@
     delete_user_not_exists/1,
     delete_malformed_json/1,
 
-    bad/1
+    bad_request/1
 ]).
 
 -include_lib("common_test/include/ct.hrl").
@@ -61,7 +61,7 @@ all() -> [
     delete_user_not_exists,
     delete_malformed_json,
 
-    bad
+    bad_request
 ].
 
 suite() -> [
@@ -179,7 +179,7 @@ delete_malformed_json(Config) ->
     {ok, {400, #{<<"reason">> := <<"malformed_json">>}}} =
         delete("ghc_bome_at_user3", <<"{">>, Config).
 
-bad(Config) ->
+bad_request(Config) ->
     {Host, Port} = {host(Config), port(Config)},
     lists:foreach(fun(Endpoint) ->
         {ok, {400, _Usage}} = request(get, format(Endpoint, [Host, Port]))
