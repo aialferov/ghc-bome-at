@@ -1,3 +1,7 @@
+PROJECT = ghc_bome_at
+
+CONFIG = priv/$(PROJECT).conf
+
 REBAR = ./rebar3
 
 BUILD_DIR = _build
@@ -7,7 +11,11 @@ all:
 	@echo "Usage: make at|at-display"
 
 at:
-	$(REBAR) ct
+	$(REBAR) ct --config $(CONFIG)
+
+make build:
+	$(REBAR) compile
+	$(REBAR) unlock
 
 clean:
 	$(REBAR) clean -a

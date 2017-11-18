@@ -6,101 +6,207 @@
     init_per_suite/1, end_per_suite/1,
     init_per_testcase/2, end_per_testcase/2,
 
-    put/1,
-    patch/1,
-    get/1,
-    delete/1,
+    get_all/1,
+    get_filter_all/1,
+    get_filter_one/1,
+    get_filter_not_exists/1,
+    get_filter_empty/1,
+    get_user_not_exists/1,
+    get_filter_bad/1,
+
+    put_existing/1,
+    put_new/1,
+    put_malformed_json/1,
+
+    patch_one/1,
+    patch_user_not_exists/1,
+    patch_malformed_json/1,
+
+    delete_few/1,
+    delete_all/1,
+    delete_metrics_not_exist/1,
+    delete_user_not_exists/1,
+    delete_malformed_json/1,
+
     bad/1
 ]).
 
 -include_lib("common_test/include/ct.hrl").
 
--define(Endpoint, "http://localhost:~b/v1/users/~s~s").
-
--define(BadEndpoints, [
-    "http://localhost:~b/v2/users/id",
-    "http://localhost:~b/v1/user/id",
-    "http://localhost:~b/v1/users/id/type"
-]).
+-define(Endpoint, "http://~s:~b/v1/users/~s~s").
 
 -define(ContentType, "application/json").
 -define(Options, [{body_format, binary}]).
 
 all() -> [
-    put,
-    patch,
-    get,
-    delete,
+    get_all,
+    get_filter_all,
+    get_filter_one,
+    get_filter_not_exists,
+    get_filter_empty,
+    get_user_not_exists,
+    get_filter_bad,
+
+    put_existing,
+    put_new,
+    put_malformed_json,
+
+    patch_one,
+    patch_user_not_exists,
+    patch_malformed_json,
+
+    delete_few,
+    delete_all,
+    delete_metrics_not_exist,
+    delete_user_not_exists,
+    delete_malformed_json,
+
     bad
 ].
 
-suite() -> [].
+suite() -> [
+    {require, host},
+    {require, port}
+].
 
-init_per_suite(Config) -> [{port, 8080}|Config].
+init_per_suite(Config) ->
+    NewConfig = [{host, config(host)},
+                 {port, config(port)}|Config],
+    delete_users(10, 10, NewConfig),
+    NewConfig.
+
 end_per_suite(Config) -> Config.
 
-init_per_testcase(_Case, Config) -> Config.
-end_per_testcase(_Case, Config) -> Config.
+init_per_testcase(_Case, Config) -> create_users(3, 3, Config), Config.
+end_per_testcase(_Case, Config) -> delete_users(10, 10, Config), Config.
 
-put(Config) ->
-    Endpoint = endpoint_fun(Config),
-    Body = jsx:encode(#{<<"type1">> => <<"value1">>,
-                        <<"typeN">> => <<"valueN">>}),
+get_all(Config) ->
+    {ok, {200, #{<<"ghc_bome_at_metric1">> := <<"ghc_bome_at_value1">>,
+                 <<"ghc_bome_at_metric2">> := <<"ghc_bome_at_value2">>,
+                 <<"ghc_bome_at_metric3">> := <<"ghc_bome_at_value3">>}}} =
+        get("ghc_bome_at_user1", [], Config).
 
-    {201, <<"">>} = request(put, Endpoint("user", []), Body),
-    {201, <<"">>} = request(put, Endpoint("user1", []), Body),
+get_filter_all(Config) ->
+    {ok, {200, #{<<"ghc_bome_at_metric1">> := <<"ghc_bome_at_value1">>,
+                 <<"ghc_bome_at_metric2">> := <<"ghc_bome_at_value2">>,
+                 <<"ghc_bome_at_metric3">> := <<"ghc_bome_at_value3">>}}} =
+        get("ghc_bome_at_user1", [{"filter", "ghc_bome_at_metric1,"
+                                             "ghc_bome_at_metric2,"
+                                             "ghc_bome_at_metric3"}], Config).
 
-    ReasonMalformedJson = #{<<"reason">> => <<"malformed_json">>},
-    {400, ReasonMalformedJson} = request(put, Endpoint("user", []), <<"{">>).
+get_filter_one(Config) ->
+    {ok, {200, #{<<"ghc_bome_at_metric2">> := <<"ghc_bome_at_value2">>}}} =
+        get("ghc_bome_at_user2", [{"filter", "ghc_bome_at_metric2"}], Config).
 
-patch(Config) ->
-    Endpoint = endpoint_fun(Config),
-    Body = jsx:encode(#{<<"type1">> => <<"value1">>,
-                        <<"typeN">> => <<"valueN">>}),
+get_filter_not_exists(Config) ->
+    {ok, {200, #{}}} =
+        get("ghc_bome_at_user2", [{"filter", "ghc_bome_at_metric4"}], Config).
 
-    {204, <<"">>} = request(patch, Endpoint("user", []), Body),
-    {404, #{<<"user2">> := <<"not_found">>}} =
-        request(patch, Endpoint("user2", []), Body),
+get_filter_empty(Config) ->
+    {ok, {200, #{}}} = get("ghc_bome_at_user2", [{"filter", ""}], Config).
 
-    ReasonMalformedJson = #{<<"reason">> => <<"malformed_json">>},
-    {400, ReasonMalformedJson} = request(patch, Endpoint("user", []), <<"{">>).
+get_user_not_exists(Config) ->
+    {ok, {404, #{<<"ghc_bome_at_user4">> := <<"not_found">>}}} =
+        get("ghc_bome_at_user4", [], Config).
 
-get(Config) ->
-    Endpoint = endpoint_fun(Config),
+get_filter_bad(Config) ->
+    {ok, {400, #{<<"reason">> := #{<<"unknown_option">> := <<"bad_filter">>}}}} =
+        get("ghc_bome_at_user4", [{"bad_filter", ""}], Config).
 
-    {200, #{<<"type1">> := <<"value1">>,
-            <<"typeN">> := <<"valueN">>}} =
-        request(get, Endpoint("user", [{"filter", "type1,typeN"}])),
+put_existing(Config) ->
+    {ok, {204, <<"">>}} = put("ghc_bome_at_user3", metrics(1), Config),
+    {ok, {200, #{<<"ghc_bome_at_metric1">> := <<"ghc_bome_at_value1">>}}} =
+        get("ghc_bome_at_user3", [], Config).
 
-    {200, #{<<"typeN">> := <<"valueN">>}} =
-        request(get, Endpoint("user", [{"filter", "typeN"}])),
+put_new(Config) ->
+    {ok, {201, <<"">>}} = put("ghc_bome_at_user4", metrics(1), Config),
+    {ok, {200, #{<<"ghc_bome_at_metric1">> := <<"ghc_bome_at_value1">>}}} =
+        get("ghc_bome_at_user4", [], Config).
 
-    {404, #{<<"user2">> := <<"not_found">>}} =
-        request(get, Endpoint("user2", [{"filter", "type1,typeN"}])),
+put_malformed_json(Config) ->
+    {ok, {400, #{<<"reason">> := <<"malformed_json">>}}} =
+        put("ghc_bome_at_user1", <<"{">>, Config).
 
-    {400, #{<<"reason">> := #{<<"unknown_option">> := <<"bad_filter">>}}} =
-        request(get, Endpoint("user", [{"bad_filter", "type1,typeN"}])).
+patch_one(Config) ->
+    {ok, {204, <<"">>}} = patch("ghc_bome_at_user3", jsx:encode(
+        #{<<"ghc_bome_at_metric2">> => <<"ghc_bome_at_value2_u">>}), Config),
 
-delete(Config) ->
-    Endpoint = endpoint_fun(Config),
-    Body = jsx:encode([<<"type1">>, <<"typeN">>]),
+    {ok, {200, #{<<"ghc_bome_at_metric1">> := <<"ghc_bome_at_value1">>,
+                 <<"ghc_bome_at_metric2">> := <<"ghc_bome_at_value2_u">>,
+                 <<"ghc_bome_at_metric3">> := <<"ghc_bome_at_value3">>}}} =
+        get("ghc_bome_at_user3", [], Config).
 
-    {204, <<"">>} = request(delete, Endpoint("user", []), Body),
-    {404, #{<<"user2">> := <<"not_found">>}} =
-        request(patch, Endpoint("user2", []), Body),
+patch_user_not_exists(Config) ->
+    {ok, {404, #{<<"ghc_bome_at_user4">> := <<"not_found">>}}} =
+        patch("ghc_bome_at_user4", metrics(1), Config).
 
-    ReasonMalformedJson = #{<<"reason">> => <<"malformed_json">>},
-    {400, ReasonMalformedJson} = request(delete, Endpoint("user", []), <<"{">>).
+patch_malformed_json(Config) ->
+    {ok, {400, #{<<"reason">> := <<"malformed_json">>}}} =
+        patch("ghc_bome_at_user4", <<"{">>, Config).
+
+delete_few(Config) ->
+    {ok, {204, <<"">>}} = delete("ghc_bome_at_user1", jsx:encode(
+        [<<"ghc_bome_at_metric1">>,
+         <<"ghc_bome_at_metric3">>]), Config),
+
+    {ok, {200, #{<<"ghc_bome_at_metric2">> := <<"ghc_bome_at_value2">>}}} =
+        get("ghc_bome_at_user1", [], Config).
+
+delete_all(Config) ->
+    {ok, {204, <<"">>}} = delete("ghc_bome_at_user2", jsx:encode(
+        [<<"ghc_bome_at_metric1">>,
+         <<"ghc_bome_at_metric2">>,
+         <<"ghc_bome_at_metric3">>]), Config),
+
+    {ok, {404, #{<<"ghc_bome_at_user2">> := <<"not_found">>}}} =
+        get("ghc_bome_at_user2", [], Config).
+
+delete_metrics_not_exist(Config) ->
+    {ok, {204, <<"">>}} = delete("ghc_bome_at_user3", jsx:encode(
+        [<<"ghc_bome_at_metric4">>,
+         <<"ghc_bome_at_metric5">>]), Config),
+
+    {ok, {200, #{<<"ghc_bome_at_metric1">> := <<"ghc_bome_at_value1">>,
+                 <<"ghc_bome_at_metric2">> := <<"ghc_bome_at_value2">>,
+                 <<"ghc_bome_at_metric3">> := <<"ghc_bome_at_value3">>}}} =
+        get("ghc_bome_at_user3", [], Config).
+
+delete_user_not_exists(Config) ->
+    {ok, {404, #{<<"ghc_bome_at_user4">> := <<"not_found">>}}} =
+        delete("ghc_bome_at_user4", metric_names(1), Config).
+
+delete_malformed_json(Config) ->
+    {ok, {400, #{<<"reason">> := <<"malformed_json">>}}} =
+        delete("ghc_bome_at_user3", <<"{">>, Config).
 
 bad(Config) ->
-    Port = port(Config),
+    {Host, Port} = {host(Config), port(Config)},
     lists:foreach(fun(Endpoint) ->
-        {400, _Usage} = request(get, format(Endpoint, [Port]))
-    end, ?BadEndpoints).
+        {ok, {400, _Usage}} = request(get, format(Endpoint, [Host, Port]))
+    end, [
+        "http://~s:~b/v2/users/id",
+        "http://~s:~b/v1/user/id",
+        "http://~s:~b/v1/users/id/type"
+    ]).
 
 endpoint_fun(Config) ->
-    Port = port(Config),
-    fun(Id, Ql) -> format(?Endpoint, [Port, Id, qs(Ql)]) end.
+    {Host, Port} = {host(Config), port(Config)},
+    fun(Id, Ql) -> format(?Endpoint, [Host, Port, Id, qs(Ql)]) end.
+
+qs([]) -> "";
+qs(Ql) -> [$?|tl(lists:flatten([[$&|K] ++ [$=|V] || {K, V} <- Ql]))].
+
+put(UserId, Metrics, Config) ->
+    request(put, (endpoint_fun(Config))(UserId, []), Metrics).
+
+patch(UserId, Metrics, Config) ->
+    request(patch, (endpoint_fun(Config))(UserId, []), Metrics).
+
+get(UserId, MetricNames, Config) ->
+    request(get, (endpoint_fun(Config))(UserId, MetricNames)).
+
+delete(UserId, Metrics, Config) ->
+    request(delete, (endpoint_fun(Config))(UserId, []), Metrics).
 
 request(Method, Endpoint) -> request(Method, Endpoint, []).
 request(Method, Endpoint, Body) ->
@@ -111,22 +217,53 @@ request(Method, Endpoint, Body) ->
     code_body(httpc:request(Method, Request, [], ?Options)).
 
 code_body(Response) -> case Response of
-    {ok, {{_Version, Code, _Reason}, _Headers, <<"">>}} -> {Code, <<"">>};
+    {ok, {{_Version, Code, _Reason}, _Headers, <<"">>}} -> {ok, {Code, <<"">>}};
     {ok, {{_Version, Code, _Reason}, Headers, Body}} ->
-        case is_content_type_json(Headers) of
+        {ok, case is_content_type_json(Headers) of
             true -> {Code, jsx:decode(Body, [return_maps])};
             false -> {Code, Body}
-        end;
+        end};
 
     {error, Reason} -> {error, Reason}
 end.
 
-qs([]) -> "";
-qs(Ql) -> [$?|tl(lists:flatten([[$&|K] ++ [$=|V] || {K, V} <- Ql]))].
-
 is_content_type_json(Headers) ->
     proplists:get_value("content-type", Headers, "") == "application/json".
 
+config(Name) ->
+    config(Name, case os:getenv(string:uppercase(atom_to_list(Name))) of
+        Value when is_list(Value) -> Value;
+        false -> ct:get_config(Name)
+    end).
+
+config(port, Value) when is_list(Value) -> list_to_integer(Value);
+config(_Name, Value) -> Value.
+
+host(Config) -> proplists:get_value(host, Config).
 port(Config) -> proplists:get_value(port, Config).
+
+create_users(UserCount, MetricsPerUserCount, Config) ->
+    lists:foreach(fun(X) ->
+        {ok, _} = put(user_id(X), metrics(MetricsPerUserCount), Config)
+    end, lists:seq(1, UserCount)).
+
+delete_users(UserCount, MetricsPerUserCount, Config) ->
+    lists:foreach(fun(X) ->
+        {ok, _} = delete(user_id(X), metric_names(MetricsPerUserCount), Config)
+    end, lists:seq(1, UserCount)).
+
+user_id(N) -> <<"ghc_bome_at_user", (integer_to_binary(N))/binary>>.
+
+metrics(Count) ->
+    AddMetric = fun(N, Metrics) -> maps:put(
+        <<"ghc_bome_at_metric", (integer_to_binary(N))/binary>>,
+        <<"ghc_bome_at_value", (integer_to_binary(N))/binary>>,
+        Metrics
+    ) end,
+    jsx:encode(lists:foldl(AddMetric, #{}, lists:seq(1, Count))).
+
+metric_names(Count) ->
+    jsx:encode([<<"ghc_bome_at_metric", (integer_to_binary(N))/binary>> ||
+                N <- lists:seq(1, Count)]).
 
 format(Format, Args) -> lists:flatten(io_lib:format(Format, Args)).

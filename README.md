@@ -8,10 +8,18 @@ Provides acceptance tests for
 The tests run against running GHC Bome Service, so you will need to provide
 its host and port. Defaults are set to "localhost:8080".
 
-To run the test:
+Although running the tests from sources requires "make" and
+[Erlang](https://www.erlang-solutions.com/resources/download.html), you
+can use Docker to run it without any dependency required:
 
 ```
-$ make at [HOST=<host>] [PORT=<port>]
+$ docker run --rm --net=host aialferov/ghc-bome-at
+```
+
+To run the test from source directory:
+
+```
+$ [HOST=<host>] [PORT=<port>] make at
 ```
 
 Besides the console output results could be seen in a browser:
