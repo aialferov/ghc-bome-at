@@ -9,6 +9,10 @@ TARGET_PORT = 8080
 
 REBAR = ./rebar3
 
+PREFIX = usr/local
+
+BIN_DIR = bin
+BIN_PATH = $(DEST_DIR)/$(PREFIX)/$(BIN_DIR)
 BIN_PATH_IN = $(shell $(REBAR) path --bin)
 
 SUITES_DIR = $(shell $(REBAR) path --app $(PROJECT) --ebin)
@@ -30,6 +34,14 @@ at:
 
 run: all
 	$(BIN_PATH_IN)/$(PROJECT)
+
+install:
+	mkdir -p $(BIN_PATH)
+	install -p $(BIN_PATH_IN)/$(PROJECT) $(BIN_PATH)
+
+uninstall:
+	rm -f $(BIN_PATH)/$(PROJECT)
+	rmdir -p $(BIN_PATH) 2> /dev/null || true
 
 shell:
 	$(REBAR) shell
@@ -53,10 +65,8 @@ at-display:
 	$(AT_DISPLAY_CMD) $(LOG_DIR)/index.html
 
 docker-build: all
-	mkdir -p $(BUILD_DIR_IMAGE)
-	mkdir -p $(BUILD_DIR_IMAGE)/bin
+	$(MAKE) install DEST_DIR=$(BUILD_DIR_IMAGE) PREFIX=
 	install -p -m 644 Dockerfile $(BUILD_DIR_IMAGE)
-	install -p $(BIN_PATH_IN)/$(PROJECT) $(BUILD_DIR_IMAGE)/bin
 	docker build $(BUILD_DIR_IMAGE) -t $(USER)/$(PROJECT):$(VERSION)
 
 docker-push:
