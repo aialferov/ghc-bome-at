@@ -11,7 +11,7 @@ REBAR = ./rebar3
 
 BIN_PATH_IN = $(shell $(REBAR) path --bin)
 
-SUITES_DIR = suites
+SUITES_DIR = $(shell $(REBAR) path --app $(PROJECT) --ebin)
 PRIV_DIR = priv
 LOG_DIR = _build/logs
 
@@ -66,7 +66,7 @@ docker-push:
 docker-run:
 	docker run \
 		--link $(TARGET_PROJECT) \
-		--env HOST=$(TARGET_PROJECT) --end PORT=$(TARGET_PORT) \
+		--env HOST=$(TARGET_PROJECT) --env PORT=$(TARGET_PORT) \
 		--rm -it -p $(PORT):$(PORT) \
 		$(USER)/$(PROJECT):$(VERSION)
 

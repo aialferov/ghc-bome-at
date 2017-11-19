@@ -1,4 +1,4 @@
--module(ghc_bome_at).
+-module('ghc-bome-at').
 -export([main/1]).
 
 -define(Info,

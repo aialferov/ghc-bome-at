@@ -1,6 +1,6 @@
-{application, ghc_bome_at, [
+{application, 'ghc-bome-at', [
     {description, "GHC Bome service acceptance tests"},
-    {id, "ghc_bome_at"},
+    {id, "ghc-bome-at"},
     {vsn, "0.1.0"},
     {modules, []},
     {applications, [kernel, stdlib, inets, cowboy]},
