@@ -3,5 +3,7 @@
     {id, "ghc_bome_at"},
     {vsn, "0.1.0"},
     {modules, []},
-    {applications, [kernel, stdlib]}
+    {applications, [kernel, stdlib, inets, cowboy]},
+    {mod, {ghc_bome_at_app, []}},
+    {env, [{port, 8088}]}
 ]}.

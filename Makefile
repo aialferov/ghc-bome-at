@@ -23,6 +23,10 @@ at:
 		--dir $(SUITES_DIR) \
 		--logdir $(LOG_DIR)
 
+shell:
+	$(REBAR) shell
+	$(REBAR) unlock
+
 clean:
 	$(REBAR) clean -a
 	$(REBAR) unlock
@@ -55,7 +59,7 @@ docker-push:
 	docker push $(USER)/$(PROJECT):$(VERSION)
 
 docker-run:
-	docker run --rm --link ghc-bome \
+	docker run --rm -it -p 8088:8088 --link ghc-bome \
 		--env HOST=ghc-bome --env PORT=8080 \
 		$(USER)/$(PROJECT):$(VERSION)
 
