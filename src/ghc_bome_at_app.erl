@@ -14,7 +14,7 @@
 start(_StartType, _StartArgs) ->
     {ok, Env} = application:get_key(env),
     Port = proplists:get_value(port, Env),
-    LogDir = proplists:get_value(log_dir, Env),
+    LogDir = proplists:get_value(logdir, Env),
 
     Dispatch = cowboy_router:compile([
         {'_', [

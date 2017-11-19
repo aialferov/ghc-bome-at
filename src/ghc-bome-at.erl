@@ -11,53 +11,76 @@
 -define(Prompt,
     "Press 'Enter' to repeat or 'q' to exit: "
 ).
-
--define(Config, [
-    {dir, "suites"},
-    {logdir, "_build/logs"},
-    {config, "priv/ghc-bome-at.conf"}
-]).
+-define(CmdRepeat, "\n").
+-define(CmdExit, "q\n").
 
 main(Args) ->
-    Config = config(Args),
-    apply_config(Config),
+    apply_env(Args),
     application:ensure_all_started(?MODULE),
-    ensure_log_dir(Config),
-    test_loop(Config).
 
-test_loop(Config) ->
+    TestConfig = test_config(),
+    ensure_log_dir(proplists:get_value(logdir, TestConfig)),
+    extract_files(TestConfig),
+    run_test_loop(TestConfig).
+
+run_test_loop(Config) ->
     ct:run_test(Config),
-    {ok, Port} = application:get_env(?MODULE, port),
-    io:format(?Info, [Port]),
+    io:format(?Info, [proplists:get_value(port, Config)]),
     prompt_loop(Config).
 
 prompt_loop(Config) ->
     case io:get_line(?Prompt) of
         eof -> ok;
-        "q\n" -> ok;
-        "\n" -> test_loop(Config);
+        ?CmdExit -> ok;
+        ?CmdRepeat -> run_test_loop(Config);
         _Other -> prompt_loop(Config)
     end.
 
-config(Args) ->
-    maps:to_list(maps:merge(
-        maps:from_list(?Config),
-        maps:from_list(lists:filtermap(fun config_arg/1, Args))
-    )).
+apply_env(Args) ->
+    lists:foreach(fun apply_env_par/1, Args).
 
-config_arg(Arg) ->
+apply_env_par(Arg) ->
     case string:split(Arg, "=") of
-        ["--config", Value] -> {true, {config, Value}};
-        ["--logdir", Value] -> {true, {logdir, Value}};
-        ["--suites", Value] -> {true, {dir, Value}};
+        ["--config", Value] -> set_env(config, Value);
+        ["--logdir", Value] -> set_env(logdir, Value);
+        ["--suites", Value] -> set_env(suites, Value);
         _Other -> false
     end.
 
-apply_config(Config) ->
-    LogDir = proplists:get_value(logdir, Config, false),
-    is_list(LogDir) andalso application:set_env(
-        ?MODULE, log_dir, LogDir, [{persistent, true}]).
+set_env(Par, Val) ->
+    application:set_env(?MODULE, Par, Val, [{persistent, true}]).
 
-ensure_log_dir(Config) ->
-    LogDir = proplists:get_value(logdir, Config, false),
+ensure_log_dir(LogDir) ->
     is_list(LogDir) andalso filelib:ensure_dir(LogDir ++ "/").
+
+test_config() ->
+    {ok, Env} = application:get_key(?MODULE, env),
+    lists:filtermap(fun
+        ({port, Value}) ->   {true, {port, Value}};
+        ({config, Value}) -> {true, {config, Value}};
+        ({logdir, Value}) -> {true, {logdir, Value}};
+        ({suites, Value}) -> {true, {dir, Value}};
+        (_Other) -> false
+    end, Env).
+
+extract_files(Config) ->
+    {ok, Binary} = file:read_file(escript:script_name()),
+    [_Header, Zip] = binary:split(Binary, <<"PK">>),
+    {ok, Files} = zip:extract(<<"PK", Zip/binary>>, [memory]),
+    lists:foreach(extract_file_fun(Config), Files).
+
+extract_file_fun(Config) -> fun({Name, Content}) ->
+    SuitesDir = proplists:get_value(dir, Config),
+    ConfigFile = proplists:get_value(config, Config),
+
+    IsSuite = lists:suffix("SUITE.erl", Name) orelse
+              lists:suffix("SUITE.beam", Name),
+    IsConfig = lists:suffix(".conf", Name),
+
+    IsSuite andalso begin
+        is_list(SuitesDir) andalso filelib:ensure_dir(SuitesDir ++ "/"),
+        SuiteFile = filename:join(SuitesDir, filename:basename(Name)),
+        file:write_file(SuiteFile, Content)
+    end,
+    IsConfig andalso file:write_file(ConfigFile, Content)
+end.

@@ -28,6 +28,9 @@ at:
 		--dir $(SUITES_DIR) \
 		--logdir $(LOG_DIR)
 
+run: all
+	$(BIN_PATH_IN)/$(PROJECT)
+
 shell:
 	$(REBAR) shell
 	$(REBAR) unlock
@@ -52,12 +55,8 @@ at-display:
 docker-build: all
 	mkdir -p $(BUILD_DIR_IMAGE)
 	mkdir -p $(BUILD_DIR_IMAGE)/bin
-	mkdir -p $(BUILD_DIR_IMAGE)/etc
-	mkdir -p $(BUILD_DIR_IMAGE)/usr/share/ghc-bome-at
 	install -p -m 644 Dockerfile $(BUILD_DIR_IMAGE)
 	install -p $(BIN_PATH_IN)/$(PROJECT) $(BUILD_DIR_IMAGE)/bin
-	install -p -m 644 $(PRIV_DIR)/$(PROJECT).conf $(BUILD_DIR_IMAGE)/etc
-	install -p -m 644 $(SUITES_DIR)/* $(BUILD_DIR_IMAGE)/usr/share/ghc-bome-at
 	docker build $(BUILD_DIR_IMAGE) -t $(USER)/$(PROJECT):$(VERSION)
 
 docker-push:
