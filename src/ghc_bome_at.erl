@@ -3,7 +3,7 @@
 
 -define(Info,
     "~n"
-    "See results at: \033[4;36mhttp://localhost:~b/index.html\033[0m~n"
+    "See details at: \033[4;36mhttp://localhost:~b/index.html\033[0m~n"
     "~n"
     "Note: the link will not be available after exit.~n"
     "~n"

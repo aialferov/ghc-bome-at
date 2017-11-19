@@ -2,6 +2,11 @@ USER = aialferov
 PROJECT = ghc-bome-at
 VERSION = latest
 
+PORT = 8088
+
+TARGET_PROJECT = ghc-bome
+TARGET_PORT = 8080
+
 REBAR = ./rebar3
 
 BIN_PATH_IN = $(shell $(REBAR) path --bin)
@@ -59,7 +64,10 @@ docker-push:
 	docker push $(USER)/$(PROJECT):$(VERSION)
 
 docker-run:
-	docker run --link ghc-bome --env HOST=ghc-bome --rm -it -p 8088:8088 \
+	docker run \
+		--link $(TARGET_PROJECT) \
+		--env HOST=$(TARGET_PROJECT) --end PORT=$(TARGET_PORT) \
+		--rm -it -p $(PORT):$(PORT) \
 		$(USER)/$(PROJECT):$(VERSION)
 
 docker-clean:
