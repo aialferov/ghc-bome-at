@@ -59,8 +59,7 @@ docker-push:
 	docker push $(USER)/$(PROJECT):$(VERSION)
 
 docker-run:
-	docker run --rm -it -p 8088:8088 --link ghc-bome \
-		--env HOST=ghc-bome --env PORT=8080 \
+	docker run --link ghc-bome --env HOST=ghc-bome --rm -it -p 8088:8088 \
 		$(USER)/$(PROJECT):$(VERSION)
 
 docker-clean:
