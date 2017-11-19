@@ -4,7 +4,7 @@ VERSION = latest
 
 PORT = 8088
 
-TARGET_PROJECT = ghc-bome
+TARGET_HOST = ghc-bome
 TARGET_PORT = 8080
 
 REBAR = ./rebar3
@@ -32,6 +32,10 @@ at: all
 		--dir $(SUITES_DIR) \
 		--logdir $(LOG_DIR)
 
+shell:
+	$(REBAR) shell
+	$(REBAR) unlock
+
 run: all
 	$(BIN_PATH_IN)/$(PROJECT)
 
@@ -42,10 +46,6 @@ install:
 uninstall:
 	rm -f $(BIN_PATH)/$(PROJECT)
 	rmdir -p $(BIN_PATH) 2> /dev/null || true
-
-shell:
-	$(REBAR) shell
-	$(REBAR) unlock
 
 clean:
 	$(REBAR) clean -a
@@ -74,8 +74,8 @@ docker-push: docker-build
 
 docker-run:
 	docker run \
-		--link $(TARGET_PROJECT) \
-		--env HOST=$(TARGET_PROJECT) --env PORT=$(TARGET_PORT) \
+		--link $(TARGET_HOST) \
+		--env HOST=$(TARGET_HOST) --env PORT=$(TARGET_PORT) \
 		--rm -it -p $(PORT):$(PORT) \
 		$(USER)/$(PROJECT):$(VERSION)
 
