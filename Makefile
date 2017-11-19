@@ -26,7 +26,7 @@ all:
 	$(REBAR) compile
 	$(REBAR) unlock
 
-at:
+at: all
 	$(REBAR) ct \
 		--config $(PRIV_DIR)/$(PROJECT).conf \
 		--dir $(SUITES_DIR) \
