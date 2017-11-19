@@ -69,7 +69,7 @@ docker-build: all
 	install -p -m 644 Dockerfile $(BUILD_DIR_IMAGE)
 	docker build $(BUILD_DIR_IMAGE) -t $(USER)/$(PROJECT):$(VERSION)
 
-docker-push:
+docker-push: docker-build
 	docker push $(USER)/$(PROJECT):$(VERSION)
 
 docker-run:
